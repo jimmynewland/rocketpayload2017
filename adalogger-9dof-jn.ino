@@ -1,17 +1,17 @@
 /**
- * 9-DOF Adalogger - Revision 1.6 - Last Update: 2017-05-06 - http://jimmynewland.com
- * 
- * This sketch uses a 9 degrees-of-freedom (LSM9DS1 9-DOF) Adafruit sensor 
- * on board am Adafruit Feather 32u4 Adalogger board. The data is saved to an onboard
- * 4GB MicroSD Card as plain, tabbed delimited text. The 9-DOF sensor has 3-axis 
- * sensors for acceleration, magnetic field, and gyroscopic motion.
- * 
- * 2 sketches were used from Adafruit Industries. 
- * One for the 9-DOF called lsm9ds1.ino.
- * And one for the Adalogger called Datalogger.ino
- */
+   9-DOF Adalogger - Revision 1.6 - Last Update: 2017-05-10 - http://jimmynewland.com
 
- //START 9-DOF init
+   This sketch uses a 9 degrees-of-freedom (LSM9DS1 9-DOF) Adafruit sensor
+   on board am Adafruit Feather 32u4 Adalogger board. The data is saved to an onboard
+   4GB MicroSD Card as plain, tabbed delimited text. The 9-DOF sensor has 3-axis
+   sensors for acceleration, magnetic field, and gyroscopic motion.
+
+   2 sketches were used from Adafruit Industries.
+   One for the 9-DOF called lsm9ds1.ino.
+   And one for the Adalogger called Datalogger.ino
+*/
+
+//START 9-DOF init
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_LSM9DS1.h>
@@ -36,29 +36,44 @@ Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
 /*
   SD card datalogger
 
- This example shows how to log data from three analog sensors
- to an SD card using the SD library.
+  This example shows how to log data from three analog sensors
+  to an SD card using the SD library.
 
- The circuit:
- * analog sensors on analog ins 0, 1, and 2
- * SD card attached to SPI bus as follows:
+  The circuit:
+   analog sensors on analog ins 0, 1, and 2
+   SD card attached to SPI bus as follows:
  ** MOSI - pin 11
  ** MISO - pin 12
  ** CLK - pin 13
  ** CS - pin 4 (for MKRZero SD: SDCARD_SS_PIN)
 
- created  24 Nov 2010
- modified 9 Apr 2012
- by Tom Igoe
+  created  24 Nov 2010
+  modified 9 Apr 2012
+  by Tom Igoe
 
- This example code is in the public domain.
- */
+  This example code is in the public domain.
+*/
 //#include <SPI.h> // repeated include
 #include <SD.h>
 const int chipSelect = 4;
 long int count = 0; // this counter keeps up with the number of sensor reads
 
 //END Adalogger init
+
+//START Battery Voltage setup
+#define VBATPIN A9
+
+String checkVoltage()
+{
+  float measuredvbat = analogRead(VBATPIN);
+  measuredvbat *= 2;    // we divided by 2, so multiply back
+  measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
+  measuredvbat /= 1024; // convert to voltage
+  
+  return (String)measuredvbat;
+}
+
+//END Battery voltage setup
 
 // Used to setup the 9-DOF sensor package.
 void setupSensor()
@@ -68,7 +83,7 @@ void setupSensor()
   //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_4G);
   lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_8G);
   //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_16G);
-  
+
   // 2.) Set the magnetometer sensitivity
   lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
   //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_8GAUSS);
@@ -77,16 +92,16 @@ void setupSensor()
 
   // 3.) Setup the gyroscope
   //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS);
-  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_500DPS);
-  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_500DPS);
+  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
 }
 
-void setup() 
+void setup()
 {
   count = 1; // start the counter
   //START 9-DOF setup
   Serial.begin(115200);
-  
+
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
   {
@@ -111,15 +126,18 @@ void setup()
   //END Adalogger setup
 }
 
-void loop() 
+void loop()
 {
+  //Check voltage
+  Serial.print("VBat: " ); Serial.println(checkVoltage());
+  
   //START 9-DOF loop
-  lsm.read();  /* ask it to read in the data */ 
+  lsm.read();  /* ask it to read in the data */
 
-  /* Get a new sensor event */ 
+  /* Get a new sensor event */
   sensors_event_t a, m, g, temp;
 
-  lsm.getEvent(&a, &m, &g, &temp); 
+  lsm.getEvent(&a, &m, &g, &temp);
 
   Serial.print("Accel X: "); Serial.print(a.acceleration.x); Serial.print(" m/s^2");
   Serial.print("\tY: "); Serial.print(a.acceleration.y);     Serial.print(" m/s^2 ");
@@ -138,23 +156,26 @@ void loop()
   //END 9-DOF loop
 
   //START Adalogger loop
-    // make a string for assembling the data to log:
+  // make a string for assembling the data to log:
   String dataString = "";
 
   //
-  dataString = dataString + count + "," + dataString; 
-  dataString = dataString + a.acceleration.x + "," 
-                          + a.acceleration.y + "," 
-                          + a.acceleration.z + ",";
+  
+  dataString = dataString + count + "," + dataString;
+  dataString = dataString + a.acceleration.x + ","
+               + a.acceleration.y + ","
+               + a.acceleration.z + ",";
 
-  dataString = dataString + m.magnetic.x + "," 
-                          + m.magnetic.y + ","
-                          + m.magnetic.z + ",";
+  dataString = dataString + m.magnetic.x + ","
+               + m.magnetic.y + ","
+               + m.magnetic.z + ",";
 
   dataString = dataString + g.gyro.x + ","
-                          + g.gyro.y + ","
-                          + g.gyro.z;
-  
+               + g.gyro.y + ","
+               + g.gyro.z + ",";
+
+  dataString = dataString + checkVoltage();
+
   //
 
   // read three sensors and append to the string:
@@ -175,7 +196,7 @@ void loop()
     dataFile.println(dataString);
     dataFile.close();
     // print to the serial port too:
-    Serial.println(dataString);
+    Serial.println("Saved: "+dataString);
   }
   // if the file isn't open, pop up an error:
   else {
